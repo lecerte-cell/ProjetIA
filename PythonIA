@@ -1,0 +1,60 @@
+from PIL import Image, ImageFilter, ImageEnhance
+import matplotlib.pyplot as plt
+import os
+
+# Chemin de l'image
+image_path = r"C:\Users\CYTech Student\OneDrive - Grenoble Ecole de Management\Documents\13.Cours_Londres\Artificial Intelligence\lena.png"
+
+# Vérifier que l'image existe
+if not os.path.exists(image_path):
+    print(f"Erreur: L'image n'existe pas à: {image_path}")
+    exit()
+
+# Charger l'image
+image = Image.open(image_path)
+
+# Créer une figure avec plusieurs sous-graphiques
+fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+fig.suptitle('Filtres appliqués à l\'image', fontsize=16)
+
+# 1. Image originale
+axes[0, 0].imshow(image)
+axes[0, 0].set_title('Image originale')
+axes[0, 0].axis('off')
+
+# 2. Flou gaussien
+blurred = image.filter(ImageFilter.GaussianBlur(radius=5))
+axes[0, 1].imshow(blurred)
+axes[0, 1].set_title('Flou gaussien')
+axes[0, 1].axis('off')
+
+# 3. Détection des bordures
+edges = image.filter(ImageFilter.FIND_EDGES)
+axes[0, 2].imshow(edges, cmap='gray')
+axes[0, 2].set_title('Détection des bordures')
+axes[0, 2].axis('off')
+
+# 4. Augmentation du contraste
+enhancer = ImageEnhance.Contrast(image)
+contrast_image = enhancer.enhance(2.0)
+axes[1, 0].imshow(contrast_image)
+axes[1, 0].set_title('Contraste augmenté')
+axes[1, 0].axis('off')
+
+# 5. Augmentation de la saturation
+enhancer = ImageEnhance.Color(image)
+saturated_image = enhancer.enhance(1.5)
+axes[1, 1].imshow(saturated_image)
+axes[1, 1].set_title('Saturation augmentée')
+axes[1, 1].axis('off')
+
+# 6. Effet de lissage (SMOOTH)
+smoothed = image.filter(ImageFilter.SMOOTH)
+axes[1, 2].imshow(smoothed)
+axes[1, 2].set_title('Lissage')
+axes[1, 2].axis('off')
+
+plt.tight_layout()
+plt.show()
+
+print("Filtres appliqués avec succès!")
