@@ -1,60 +1,87 @@
-from PIL import Image, ImageFilter, ImageEnhance
+from PIL import Image
 import matplotlib.pyplot as plt
-import os
 
-# Chemin de l'image
-image_path = r"C:\Users\CYTech Student\OneDrive - Grenoble Ecole de Management\Documents\13.Cours_Londres\Artificial Intelligence\lena.png"
+def eye_positions(img):
+    # One-at-a-time clicks are more robust. Block for each.
+    plt.figure()
+    plt.imshow(img)
+    plt.axis('off')
+   
+    # Step 1: left eye
+    plt.title("Click eye on the left")
+    x1, y1 = plt.ginput(1, timeout=-1)[0]
+    plt.plot(x1, y1, 'gx')
+    plt.draw()
+   
+    # Step 2: right eye
+    plt.title("Click eye on the right")
+    x2, y2 = plt.ginput(1, timeout=-1)[0]
+    plt.plot(x2, y2, 'gx')
+    plt.draw()
+    plt.close()
+   
+    return (x1, y1), (x2, y2)  # return left, right tuple
 
-# Vérifier que l'image existe
-if not os.path.exists(image_path):
-    print(f"Erreur: L'image n'existe pas à: {image_path}")
-    exit()
 
-# Charger l'image
-image = Image.open(image_path)
+import numpy as np
 
-# Créer une figure avec plusieurs sous-graphiques
-fig, axes = plt.subplots(2, 3, figsize=(15, 10))
-fig.suptitle('Filtres appliqués à l\'image', fontsize=16)
+def extract_face(img):
+    # Convert to grayscale
+    gray_img = img.convert('L')
+   
+    # Get eye positions
+    c1, c2 = eye_positions(gray_img)
+   
+    # Calculate angle
+    angle = np.degrees(np.arctan2(c2[1]-c1[1], c2[0]-c1[0]))
+    print("Angle =", angle)
+    # Rotate image
+    I2_img = gray_img.rotate(angle, expand=False)
+    I2 = np.array(I2_img)
 
-# 1. Image originale
-axes[0, 0].imshow(image)
-axes[0, 0].set_title('Image originale')
-axes[0, 0].axis('off')
+    # Center coordinates
+    h, w = I2.shape
+    R = np.array([[np.cos(np.radians(-angle)), -np.sin(np.radians(-angle))],
+                  [np.sin(np.radians(-angle)), np.cos(np.radians(-angle))]])
+   
+    new_c1 = (R @ (np.array(c1).reshape(2,1)-np.array([[w/2], [h/2]]))) + np.array([[w/2], [h/2]])
+    new_c2 = (R @ (np.array(c2).reshape(2,1)-np.array([[w/2], [h/2]]))) + np.array([[w/2], [h/2]])
 
-# 2. Flou gaussien
-blurred = image.filter(ImageFilter.GaussianBlur(radius=5))
-axes[0, 1].imshow(blurred)
-axes[0, 1].set_title('Flou gaussien')
-axes[0, 1].axis('off')
+    #plt.imshow(img, cmap='gray')
+    # Show eyes
+    plt.figure()
+    ax = plt.gca()
+    ax.imshow(I2, cmap='gray')
+    ax.plot(new_c1[0], new_c1[1], 'go')
+    ax.plot(new_c2[0], new_c2[1], 'go')
+    plt.title("Rotated image with eye positions (left, then right)")
+    plt.show()
+    plt.figure()
+    # size of face
+    scale = np.sqrt(np.sum((new_c1 - new_c2)**2)) #euclidean distance
 
-# 3. Détection des bordures
-edges = image.filter(ImageFilter.FIND_EDGES)
-axes[0, 2].imshow(edges, cmap='gray')
-axes[0, 2].set_title('Détection des bordures')
-axes[0, 2].axis('off')
+    # Crop and resize
+    x, y = new_c1.flatten()
+    crop_box = (int(x-0.5*scale), int(y-0.5*scale), int(x+1.5*scale), int(y+1.5*scale))
+    cropped = I2_img.crop(crop_box)
+    cropped = cropped.resize((100, 100))
 
-# 4. Augmentation du contraste
-enhancer = ImageEnhance.Contrast(image)
-contrast_image = enhancer.enhance(2.0)
-axes[1, 0].imshow(contrast_image)
-axes[1, 0].set_title('Contraste augmenté')
-axes[1, 0].axis('off')
+    # Show crop
+    #plt.imshow(cropped, cmap='gray')
+    #plt.axis('off')
+    #plt.show(block=False)
 
-# 5. Augmentation de la saturation
-enhancer = ImageEnhance.Color(image)
-saturated_image = enhancer.enhance(1.5)
-axes[1, 1].imshow(saturated_image)
-axes[1, 1].set_title('Saturation augmentée')
-axes[1, 1].axis('off')
+    return cropped
 
-# 6. Effet de lissage (SMOOTH)
-smoothed = image.filter(ImageFilter.SMOOTH)
-axes[1, 2].imshow(smoothed)
-axes[1, 2].set_title('Lissage')
-axes[1, 2].axis('off')
 
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    img = Image.open('plane1.png')
+    # left, right = eye_positions(img)
+    # print("Left eye: (%.1f, %.1f)" % left)
+    # print("Right eye: (%.1f, %.1f)" % right)
+    face = extract_face(img.rotate(45, expand=False))
+    plt.figure()
+    plt.imshow(face, cmap='gray')
+    plt.title("Extracted Face")
+    plt.show()
 
-print("Filtres appliqués avec succès!")
